@@ -1,8 +1,6 @@
 pipeline {
     agent any
-    environment {
-        // Set up any environment variables if necessary
-    }
+
     stages {
         stage('Checkout SCM') {
             steps {
@@ -37,6 +35,7 @@ pipeline {
             }
         }
     }
+
     post {
         always {
             echo 'Cleaning up the workspace...'
