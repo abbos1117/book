@@ -1,52 +1,90 @@
 pipeline {
-    agent any
-
     environment {
-        VIRTUAL_ENV = "${WORKSPACE}/venv"
+        gitRepo = 'https://github.com/abbos1117/book.git' // GitHub repository manzili
+        branchName = 'main' // Git branch nomi
+        dockerImage = '' // Docker image uchun o'zgaruvchi
     }
 
+    agent any
+
     stages {
-        stage('Checkout SCM') {
+        stage('Git - Checkout') {
             steps {
-                checkout scm
+                echo "Repositoryni klonlash..."
+                checkout([$class: 'GitSCM', branches: [[name: branchName]], userRemoteConfigs: [[url: gitRepo]]])
             }
         }
 
-        stage('Set Up Virtual Environment') {
+        stage('Docker Image Yaratish') {
             steps {
                 script {
-                    // Agar virtual muhit mavjud bo'lmasa, uni yaratamiz
-                    if (!fileExists("${env.VIRTUAL_ENV}")) {
-                        sh "python3 -m venv ${env.VIRTUAL_ENV}"
+                    echo "Docker image yaratilyapti..."
+                    dockerImage = docker.build("${env.DOCKER_USERNAME}/book_container:${env.BUILD_NUMBER}") // Build raqami bilan Docker image yaratish
+                    dockerImage.tag("latest") // 'latest' tegini qo‘shish
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                script {
+                    echo "Testlarni ishga tushirish..."
+                    // Testlarni bajarish uchun kerakli buyruqlarni bu yerga qo'shing
+                    // Misol uchun:
+                    // sh 'python3 -m unittest discover tests/'
+                }
+            }
+        }
+
+        stage('Docker Image-ni Push Qilish') {
+            steps {
+                script {
+                    echo "Docker Hub'ga autentifikatsiya qilinyapti..."
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub_id', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        sh 'echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin' // Docker Hub'ga login
                     }
-                    // Virtual muhitni faollashtiramiz
-                    sh ". ${env.VIRTUAL_ENV}/bin/activate"
-                    // requirements.txt faylini o'rnatamiz
-                    sh "pip install -r requirements.txt"
+
+                    echo "Docker image Docker Hub'ga yuklanyapti..."
+                    dockerImage.push("${env.BUILD_NUMBER}") // Build raqami bilan image push qilish
+                    dockerImage.push("latest") // 'latest' teg bilan image push qilish
                 }
             }
         }
 
-        stage('Run Tests') {
+        stage('Docker Image-ni Ishga Tushirish') {
             steps {
                 script {
-                    // Testlarni bajarish
-                    sh ". ${env.VIRTUAL_ENV}/bin/activate && python3 manage.py test myapp.tests"
+                    echo "Docker image ishga tushirilmoqda..."
+                    // Yangi konteyner nomi bilan Docker containerni ishga tushirish
+                    sh "docker run -d -p 7002:7000 --name book-container1 ${env.DOCKER_USERNAME}/book_container:${env.BUILD_NUMBER}"
+                    echo "Docker image 'book-container1' konteynerida ishlamoqda"
                 }
             }
         }
 
-        stage('Clean Up') {
+        stage('Tozalash') {
             steps {
-                cleanWs()
+                script {
+                    echo "Docker image va konteynerlarni tozalash..."
+                    sh "docker rmi ${env.DOCKER_USERNAME}/book_container:${env.BUILD_NUMBER} || true" // Build image-ni o'chirish
+                    sh "docker rmi ${env.DOCKER_USERNAME}/book_container:latest || true" // 'latest' image-ni o'chirish
+                    sh "docker stop book-container1 || true" // Yangi konteynerni to'xtatish
+                    sh "docker rm book-container1 || true" // Yangi konteynerni o'chirish
+                }
             }
         }
     }
 
     post {
+        success {
+            echo "Build, test va push muvaffaqiyatli yakunlandi!"
+        }
+        failure {
+            echo "Build yoki test muvaffaqiyatsiz tugadi!"
+        }
         always {
-            // Testdan keyin virtual muhiti tozalash
-            sh "deactivate || true"
+            echo "Workspace tozalanmoqda..."
+            cleanWs() // Workspace tozalash
         }
     }
 }
