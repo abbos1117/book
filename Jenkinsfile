@@ -20,7 +20,7 @@ pipeline {
             steps {
                 script {
                     echo "Docker image yaratilyapti..."
-                    dockerImage = docker.build("${env.DOCKER_USERNAME}/book_container:${env.BUILD_NUMBER}") // Build raqami bilan Docker image yaratish
+                    dockerImage = docker.build("${DOCKER_USERNAME}/book_container:${BUILD_NUMBER}") // Build raqami bilan Docker image yaratish
                     dockerImage.tag("latest") // 'latest' tegini qo‘shish
                 }
             }
@@ -30,7 +30,7 @@ pipeline {
             steps {
                 script {
                     echo "Testlarni ishga tushirish..."
-
+                    
                     // Docker konteyneri ichida testlarni ishga tushirish
                     sh '''
                         docker run -d -p 7002:7000 --name book-container1 ${DOCKER_USERNAME}/book_container:${BUILD_NUMBER}
@@ -88,7 +88,7 @@ pipeline {
 
     post {
         success {
-            echo "Build, test va push muvaffaqiyatsiz yakunlandi!"
+            echo "Build, test va push muvaffaqiyatli yakunlandi!"
         }
         failure {
             echo "Build yoki test muvaffaqiyatsiz tugadi!"
