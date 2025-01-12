@@ -35,17 +35,7 @@ pipeline {
                 }
             }
         }
-        stage('Tozalash') {
-            steps {
-                script {
-                    echo "Docker image va konteynerlarni tozalash..."
-                    sh "docker rmi ${env.DOCKER_USERNAME}/book_container:${env.BUILD_NUMBER} || true" // Build image-ni o'chirish
-                    sh "docker rmi ${env.DOCKER_USERNAME}/book_container:latest || true" // 'latest' image-ni o'chirish
-                    sh "docker stop book-container1 || true" // Yangi konteynerni to'xtatish
-                    sh "docker rm book-container1 || true" // Yangi konteynerni o'chirish
-                }
-            }
-        }
+
         stage('Docker Image-ni Push Qilish') {
             steps {
                 script {
@@ -72,18 +62,18 @@ pipeline {
             }
         }
 
-        stage('Tozalash') {
-            steps {
-                script {
-                    echo "Docker image va konteynerlarni tozalash..."
-                    sh "docker rmi ${env.DOCKER_USERNAME}/book_container:${env.BUILD_NUMBER} || true" // Build image-ni o'chirish
-                    sh "docker rmi ${env.DOCKER_USERNAME}/book_container:latest || true" // 'latest' image-ni o'chirish
-                    sh "docker stop book-container1 || true" // Yangi konteynerni to'xtatish
-                    sh "docker rm book-container1 || true" // Yangi konteynerni o'chirish
-                }
-            }
-        }
-    }
+       // stage('Tozalash') {
+       //     steps {
+       //         script {
+       //             echo "Docker image va konteynerlarni tozalash..."
+       //             sh "docker rmi ${env.DOCKER_USERNAME}/book_container:${env.BUILD_NUMBER} || true" // Build image-ni o'chirish
+       //             sh "docker rmi ${env.DOCKER_USERNAME}/book_container:latest || true" // 'latest' image-ni o'chirish
+       //             sh "docker stop book-container1 || true" // Yangi konteynerni to'xtatish
+       //             sh "docker rm book-container1 || true" // Yangi konteynerni o'chirish
+       //         }
+       //     }
+       // }
+    }//
 
     post {
         success {
