@@ -9,6 +9,7 @@ pipeline {
         dockerhub_pass = "${dockerhub_pass}"
         // Yangi konteyner nomi
         containerName = "kutubxona-container-${env.BUILD_NUMBER}" // Yangi nomda konteyner yaratish
+        dockerImageName = "kutubxona-image" // Docker image nomi o'zgartirildi
     }
 
     agent any
@@ -51,7 +52,7 @@ pipeline {
             steps {
                 script {
                     echo "Docker image yaratilyapti..."
-                    dockerImage = docker.build("${env.dockerhub_user}/book_container:${env.BUILD_NUMBER}")
+                    dockerImage = docker.build("${env.dockerhub_user}/${env.dockerImageName}:${env.BUILD_NUMBER}")
                     dockerImage.tag("latest")
                 }
             }
@@ -79,7 +80,7 @@ pipeline {
                     sh "docker stop ${env.containerName} || true"
                     sh "docker rm ${env.containerName} || true"
                     echo "Docker image ishga tushirilmoqda..."
-                    sh "docker run -d -p 7005:7005 --name ${env.containerName} ${env.dockerhub_user}/book_container:${env.BUILD_NUMBER}"
+                    sh "docker run -d -p 7006:7005 --name ${env.containerName} ${env.dockerhub_user}/${env.dockerImageName}:${env.BUILD_NUMBER}"
                     echo "Docker image '${env.containerName}' konteynerida ishlamoqda"
                 }
             }
@@ -89,8 +90,8 @@ pipeline {
             steps {
                 script {
                     echo "Docker image va konteynerlarni tozalash..."
-                    sh "docker rmi ${env.dockerhub_user}/book_container:${env.BUILD_NUMBER} || true"
-                    sh "docker rmi ${env.dockerhub_user}/book_container:latest || true"
+                    sh "docker rmi ${env.dockerhub_user}/${env.dockerImageName}:${env.BUILD_NUMBER} || true"
+                    sh "docker rmi ${env.dockerhub_user}/${env.dockerImageName}:latest || true"
                 }
             }
         }
