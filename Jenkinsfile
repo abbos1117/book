@@ -31,7 +31,7 @@ pipeline {
             steps {
                 script {
                     // Testlarni bajarish
-                    sh ". ${env.VIRTUAL_ENV}/bin/activate && python manage.py test myapp.tests"
+                    sh ". ${env.VIRTUAL_ENV}/bin/activate && python3 manage.py test myapp.tests"
                 }
             }
         }
