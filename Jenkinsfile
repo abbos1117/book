@@ -33,7 +33,7 @@ pipeline {
 
                     // Docker konteyneri ichida testlarni ishga tushirish
                     sh '''
-                        docker run -d -p 7002:7000 --name book-container1 ${env.DOCKER_USERNAME}/book_container:${env.BUILD_NUMBER}
+                        docker run -d -p 7002:7000 --name book-container1 ${DOCKER_USERNAME}/book_container:${BUILD_NUMBER}
                         echo "Docker konteyneri ishga tushirildi. Testlar ishga tushadi..."
                         
                         # Docker konteynerida testlarni bajarish
@@ -56,7 +56,7 @@ pipeline {
                     }
 
                     echo "Docker image Docker Hub'ga yuklanyapti..."
-                    dockerImage.push("${env.BUILD_NUMBER}") // Build raqami bilan image push qilish
+                    dockerImage.push("${BUILD_NUMBER}") // Build raqami bilan image push qilish
                     dockerImage.push("latest") // 'latest' teg bilan image push qilish
                 }
             }
@@ -67,7 +67,7 @@ pipeline {
                 script {
                     echo "Docker image ishga tushirilmoqda..."
                     // Yangi konteyner nomi bilan Docker containerni ishga tushirish
-                    sh "docker run -d -p 7002:7000 --name book-container1 ${env.DOCKER_USERNAME}/book_container:${env.BUILD_NUMBER}"
+                    sh "docker run -d -p 7002:7000 --name book-container1 ${DOCKER_USERNAME}/book_container:${BUILD_NUMBER}"
                     echo "Docker image 'book-container1' konteynerida ishlamoqda"
                 }
             }
@@ -77,8 +77,8 @@ pipeline {
             steps {
                 script {
                     echo "Docker image va konteynerlarni tozalash..."
-                    sh "docker rmi ${env.DOCKER_USERNAME}/book_container:${env.BUILD_NUMBER} || true" // Build image-ni o'chirish
-                    sh "docker rmi ${env.DOCKER_USERNAME}/book_container:latest || true" // 'latest' image-ni o'chirish
+                    sh "docker rmi ${DOCKER_USERNAME}/book_container:${BUILD_NUMBER} || true" // Build image-ni o'chirish
+                    sh "docker rmi ${DOCKER_USERNAME}/book_container:latest || true" // 'latest' image-ni o'chirish
                     sh "docker stop book-container1 || true" // Yangi konteynerni to'xtatish
                     sh "docker rm book-container1 || true" // Yangi konteynerni o'chirish
                 }
