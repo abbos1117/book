@@ -1,74 +1,52 @@
 pipeline {
-    environment {
-        gitRepo = 'https://github.com/abbos1117/book.git'  // GitHub repository URL
-        branchName = 'main'  // Git branch name
-        VIRTUAL_ENV = '.venv'  // Virtual environment name
-    }
-
     agent any
-
+    environment {
+        // Set up any environment variables if necessary
+    }
     stages {
-        stage('Git - Checkout') {
+        stage('Checkout SCM') {
             steps {
-                echo "Cloning repository..."
-                checkout([$class: 'GitSCM', branches: [[name: branchName]], userRemoteConfigs: [[url: gitRepo]]])
+                echo 'Cloning repository...'
+                checkout scm
             }
         }
-
         stage('Set Up Virtual Environment') {
             steps {
                 script {
-                    echo "Setting up the virtual environment..."
-
-                    // Install dependencies using Pipenv or other tools as per your setup
-                    sh '''
-                        python3 -m venv ${VIRTUAL_ENV}
-                        . ${VIRTUAL_ENV}/bin/activate
-                        pip install -r requirements.txt
-                    '''
+                    echo 'Setting up the virtual environment...'
+                    // Install pipenv to handle dependencies
+                    sh 'pip install pipenv'
+                    // Install dependencies using pipenv
+                    sh 'pipenv install --dev'
                 }
             }
         }
-
         stage('Run Tests') {
             steps {
                 script {
-                    echo "Running Django tests..."
-
-                    // Activate virtual environment and run Django tests
-                    sh '''
-                        . ${VIRTUAL_ENV}/bin/activate
-                        python manage.py test myapp.tests
-                    '''
+                    echo 'Running tests...'
+                    // Run the Django tests using pipenv
+                    sh 'pipenv run python manage.py test myapp.tests'
                 }
             }
         }
-
         stage('Clean Up') {
             steps {
-                script {
-                    echo "Cleaning up..."
-
-                    // Deactivate virtual environment and remove it
-                    sh '''
-                        deactivate || true
-                        rm -rf ${VIRTUAL_ENV}
-                    '''
-                }
+                echo 'Cleaning up workspace...'
+                cleanWs()
             }
         }
     }
-
     post {
+        always {
+            echo 'Cleaning up the workspace...'
+            cleanWs()
+        }
         success {
-            echo "Build and test completed successfully!"
+            echo 'Build and tests passed successfully.'
         }
         failure {
-            echo "Build or test failed!"
-        }
-        always {
-            echo "Workspace cleaning up..."
-            cleanWs()  // Clean workspace after the job
+            echo 'Build or tests failed!'
         }
     }
 }
