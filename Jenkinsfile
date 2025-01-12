@@ -73,7 +73,7 @@ pipeline {
                     sh "docker rm book-container1 || true" // Eski konteynerni o'chirish
                     echo "Docker image ishga tushirilmoqda..."
                     // Yangi konteyner nomi bilan Docker containerni ishga tushirish
-                    sh "docker run -d -p 7002:7000 --name book-container1 ${env.DOCKER_USERNAME}/book_container:${env.BUILD_NUMBER}"
+                    sh "docker run -d -p 7005:7005 --name book-container1 ${env.DOCKER_USERNAME}/book_container:${env.BUILD_NUMBER}"
                     echo "Docker image 'book-container1' konteynerida ishlamoqda"
                 }
             }

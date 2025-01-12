@@ -13,7 +13,7 @@ WORKDIR /var/www/html
 COPY . /var/www/html
 
 # Expose port 8000
-EXPOSE 8000
+EXPOSE 7005
 
 # Command to run the built-in PHP server
-CMD ["php", "-S", "0.0.0.0:8000"]
+CMD ["php", "-S", "0.0.0.0:7005"]
