@@ -3,6 +3,7 @@ pipeline {
         gitRepo = 'https://github.com/abbos1117/book.git' // GitHub repository manzili
         branchName = 'main' // Git branch nomi
         dockerImage = '' // Docker image uchun o'zgaruvchi
+        VIRTUAL_ENV = '.venv' // Virtual muhit nomi
     }
 
     agent any
@@ -29,7 +30,19 @@ pipeline {
             steps {
                 script {
                     echo "Testlarni ishga tushirish..."
-                    sh 'docker run --rm ${env.DOCKER_USERNAME}/book_container:${env.BUILD_NUMBER} pipenv run python manage.py test myapp.tests'
+
+                    // Docker konteyneri ichida testlarni ishga tushirish
+                    sh '''
+                        docker run -d -p 7002:7000 --name book-container1 ${env.DOCKER_USERNAME}/book_container:${env.BUILD_NUMBER}
+                        echo "Docker konteyneri ishga tushirildi. Testlar ishga tushadi..."
+                        
+                        # Docker konteynerida testlarni bajarish
+                        docker exec -T book-container1 /bin/bash -c "
+                            python3 -m venv ${VIRTUAL_ENV} &&
+                            . ${VIRTUAL_ENV}/bin/activate &&
+                            pip install -r /app/requirements.txt &&
+                            python manage.py test myapp.tests"
+                    '''
                 }
             }
         }
