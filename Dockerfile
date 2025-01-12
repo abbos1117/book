@@ -1,19 +1,22 @@
-# Use the official PHP image as the base image
-FROM php:8.1-cli
-
-# Install required extensions (e.g., mysqli, pdo, etc.)
-RUN apt-get update && apt-get install -y libpng-dev libjpeg-dev libfreetype6-dev \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install gd pdo pdo_mysql
+FROM python:3.9-slim
 
 # Set the working directory in the container
-WORKDIR /var/www/html
+WORKDIR /app
 
-# Copy the PHP project files into the container
-COPY . /var/www/html
+# Copy the current directory contents into the container at /app
+COPY . /app/
 
-# Expose port 8000
+# Install pipenv
+RUN pip install pipenv
+
+# Install dependencies from the Pipfile
+RUN pipenv install --dev --python 3.9
+
+# Install missing dependencies explicitly, including Pillow
+RUN pipenv install typing-extensions pillow
+
+# Expose port 7005 to access the Django development server
 EXPOSE 7005
 
-# Command to run the built-in PHP server
-CMD ["php", "-S", "0.0.0.0:7005"]
+# Run the Django development server when the container starts
+CMD ["pipenv", "run", "python", "manage.py", "runserver", "0.0.0.0:7005"]

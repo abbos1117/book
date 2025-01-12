@@ -1,9 +1,14 @@
 pipeline {
     environment {
-        gitRepo = 'https://github.com/abbos1117/book.git' // GitHub repository manzili
-        branchName = 'main' // Git branch nomi
-        dockerImage = '' // Docker image uchun o'zgaruvchi
-        VIRTUAL_ENV = "${WORKSPACE}/venv" // Virtual muhit manzili
+        gitRepo = 'https://github.com/abbos1117/book.git'
+        branchName = 'main'
+        dockerImage = ''
+        // Virtual muhit uchun yangi manzil
+        VIRTUAL_ENV = "${WORKSPACE}/env"  // Yangi nom, WORKSPACE ichida 'env' deb nomladi
+        dockerhub_user = "${dockerhub_name}"
+        dockerhub_pass = "${dockerhub_pass}"
+        // Yangi konteyner nomi
+        containerName = "kutubxona-container-${env.BUILD_NUMBER}" // Yangi nomda konteyner yaratish
     }
 
     agent any
@@ -34,7 +39,6 @@ pipeline {
         stage('Run Tests') {
             steps {
                 script {
-                    // Testlarni bajarish
                     sh ". ${env.VIRTUAL_ENV}/bin/activate && python3 manage.py test myapp.tests"
                 }
             }
@@ -44,8 +48,8 @@ pipeline {
             steps {
                 script {
                     echo "Docker image yaratilyapti..."
-                    dockerImage = docker.build("${env.DOCKER_USERNAME}/book_container:${env.BUILD_NUMBER}") // Build raqami bilan Docker image yaratish
-                    dockerImage.tag("latest") // 'latest' tegini qo‘shish
+                    dockerImage = docker.build("${env.dockerhub_user}/book_container:${env.BUILD_NUMBER}")
+                    dockerImage.tag("latest")
                 }
             }
         }
@@ -54,13 +58,13 @@ pipeline {
             steps {
                 script {
                     echo "Docker Hub'ga autentifikatsiya qilinyapti..."
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub_id', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                        sh 'echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin' // Docker Hub'ga login
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub_id', usernameVariable: 'dockerhub_user', passwordVariable: 'dockerhub_pass')]) {
+                        sh 'echo "$dockerhub_pass" | docker login -u "$dockerhub_user" --password-stdin'
                     }
 
                     echo "Docker image Docker Hub'ga yuklanyapti..."
-                    dockerImage.push("${env.BUILD_NUMBER}") // Build raqami bilan image push qilish
-                    dockerImage.push("latest") // 'latest' teg bilan image push qilish
+                    dockerImage.push("${env.BUILD_NUMBER}")
+                    dockerImage.push("latest")
                 }
             }
         }
@@ -69,12 +73,11 @@ pipeline {
             steps {
                 script {
                     echo "Eski konteynerni to'xtatish va o'chirish..."
-                    sh "docker stop book-container1 || true" // Eski konteynerni to'xtatish
-                    sh "docker rm book-container1 || true" // Eski konteynerni o'chirish
+                    sh "docker stop ${env.containerName} || true"
+                    sh "docker rm ${env.containerName} || true"
                     echo "Docker image ishga tushirilmoqda..."
-                    // Yangi konteyner nomi bilan Docker containerni ishga tushirish
-                    sh "docker run -d -p 7005:7005 --name book-container1 ${env.DOCKER_USERNAME}/book_container:${env.BUILD_NUMBER}"
-                    echo "Docker image 'book-container1' konteynerida ishlamoqda"
+                    sh "docker run -d -p 7005:7005 --name ${env.containerName} ${env.dockerhub_user}/book_container:${env.BUILD_NUMBER}"
+                    echo "Docker image '${env.containerName}' konteynerida ishlamoqda"
                 }
             }
         }
@@ -83,8 +86,8 @@ pipeline {
             steps {
                 script {
                     echo "Docker image va konteynerlarni tozalash..."
-                    sh "docker rmi ${env.DOCKER_USERNAME}/book_container:${env.BUILD_NUMBER} || true" // Build image-ni o'chirish
-                    sh "docker rmi ${env.DOCKER_USERNAME}/book_container:latest || true" // 'latest' image-ni o'chirish
+                    sh "docker rmi ${env.dockerhub_user}/book_container:${env.BUILD_NUMBER} || true"
+                    sh "docker rmi ${env.dockerhub_user}/book_container:latest || true"
                 }
             }
         }
@@ -99,7 +102,7 @@ pipeline {
         }
         always {
             echo "Workspace tozalanmoqda..."
-            cleanWs() // Workspace tozalash
+            cleanWs()
         }
     }
 }
