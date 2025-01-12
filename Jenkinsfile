@@ -3,6 +3,7 @@ pipeline {
         gitRepo = 'https://github.com/abbos1117/book.git' // GitHub repository manzili
         branchName = 'main' // Git branch nomi
         dockerImage = '' // Docker image uchun o'zgaruvchi
+        VIRTUAL_ENV = "${WORKSPACE}/venv" // Virtual muhit manzili
     }
 
     agent any
@@ -15,23 +16,36 @@ pipeline {
             }
         }
 
+        stage('Set Up Virtual Environment') {
+            steps {
+                script {
+                    // Agar virtual muhit mavjud bo'lmasa, uni yaratamiz
+                    if (!fileExists("${env.VIRTUAL_ENV}")) {
+                        sh "python3 -m venv ${env.VIRTUAL_ENV}"
+                    }
+                    // Virtual muhitni faollashtiramiz
+                    sh ". ${env.VIRTUAL_ENV}/bin/activate"
+                    // requirements.txt faylini o'rnatamiz
+                    sh "pip install -r requirements.txt"
+                }
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                script {
+                    // Testlarni bajarish
+                    sh ". ${env.VIRTUAL_ENV}/bin/activate && python3 manage.py test myapp.tests"
+                }
+            }
+        }
+
         stage('Docker Image Yaratish') {
             steps {
                 script {
                     echo "Docker image yaratilyapti..."
                     dockerImage = docker.build("${env.DOCKER_USERNAME}/book_container:${env.BUILD_NUMBER}") // Build raqami bilan Docker image yaratish
                     dockerImage.tag("latest") // 'latest' tegini qo‘shish
-                }
-            }
-        }
-
-        stage('Test') {
-            steps {
-                script {
-                    echo "Testlarni ishga tushirish..."
-                    // Testlarni bajarish uchun kerakli buyruqlarni bu yerga qo'shing
-                    // Misol uchun:
-                    // sh 'python3 -m unittest discover tests/'
                 }
             }
         }
@@ -62,7 +76,6 @@ pipeline {
                     sh "docker run -d -p 7002:7000 --name book-container1 ${env.DOCKER_USERNAME}/book_container:${env.BUILD_NUMBER}"
                     echo "Docker image 'book-container1' konteynerida ishlamoqda"
                 }
-                }
             }
         }
 
@@ -70,9 +83,8 @@ pipeline {
             steps {
                 script {
                     echo "Docker image va konteynerlarni tozalash..."
-                   sh "docker rmi ${env.DOCKER_USERNAME}/book_container:${env.BUILD_NUMBER} || true" // Build image-ni o'chirish
+                    sh "docker rmi ${env.DOCKER_USERNAME}/book_container:${env.BUILD_NUMBER} || true" // Build image-ni o'chirish
                     sh "docker rmi ${env.DOCKER_USERNAME}/book_container:latest || true" // 'latest' image-ni o'chirish
-                
                 }
             }
         }
