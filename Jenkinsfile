@@ -28,10 +28,12 @@ pipeline {
                     if (!fileExists("${env.VIRTUAL_ENV}")) {
                         sh "python3 -m venv ${env.VIRTUAL_ENV}"
                     }
-                    // Virtual muhitni faollashtiramiz
-                    sh ". ${env.VIRTUAL_ENV}/bin/activate"
-                    // requirements.txt faylini o'rnatamiz
-                    sh "pip install -r requirements.txt"
+                    // Virtual muhitni faollashtiramiz va requirements.txt faylini o'rnatamiz
+                    sh """
+                        . ${env.VIRTUAL_ENV}/bin/activate
+                        pip install --upgrade pip
+                        pip install -r requirements.txt
+                    """
                 }
             }
         }
@@ -39,6 +41,7 @@ pipeline {
         stage('Run Tests') {
             steps {
                 script {
+                    // Virtual muhitda testlarni ishga tushiramiz
                     sh ". ${env.VIRTUAL_ENV}/bin/activate && python3 manage.py test myapp.tests"
                 }
             }
