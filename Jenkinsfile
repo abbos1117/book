@@ -20,7 +20,7 @@ pipeline {
             steps {
                 script {
                     echo "Docker image yaratilyapti..."
-                    dockerImage = docker.build("${DOCKER_USERNAME}/book_container:${BUILD_NUMBER}") // Build raqami bilan Docker image yaratish
+                    dockerImage = docker.build("${env.DOCKER_USERNAME}/book_container:${env.BUILD_NUMBER}") // Build raqami bilan Docker image yaratish
                     dockerImage.tag("latest") // 'latest' tegini qo‘shish
                 }
             }
@@ -30,7 +30,7 @@ pipeline {
             steps {
                 script {
                     echo "Testlarni ishga tushirish..."
-                    
+
                     // Docker konteyneri ichida testlarni ishga tushirish
                     sh '''
                         docker run -d -p 7002:7000 --name book-container1 ${DOCKER_USERNAME}/book_container:${BUILD_NUMBER}
@@ -66,7 +66,17 @@ pipeline {
             steps {
                 script {
                     echo "Docker image ishga tushirilmoqda..."
-                    // Yangi konteyner nomi bilan Docker containerni ishga tushirish
+
+                    // Agar konteyner nomi allaqachon mavjud bo'lsa, uni to'xtatish va o'chirish
+                    sh """
+                        if [ \$(docker ps -aq -f name=book-container1) ]; then
+                            echo 'Konteyner mavjud, uni to\'xtatish va o\'chirish...'
+                            docker stop book-container1 || true
+                            docker rm book-container1 || true
+                        fi
+                    """
+
+                    // Yangi konteynerni ishga tushirish
                     sh "docker run -d -p 7002:7000 --name book-container1 ${DOCKER_USERNAME}/book_container:${BUILD_NUMBER}"
                     echo "Docker image 'book-container1' konteynerida ishlamoqda"
                 }
