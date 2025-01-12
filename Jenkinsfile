@@ -27,26 +27,25 @@ pipeline {
         }
 
         stage('Test') {
-    steps {
-        script {
-            echo "Testlarni ishga tushirish..."
+            steps {
+                script {
+                    echo "Testlarni ishga tushirish..."
 
-            // Docker konteyneri ichida testlarni ishga tushirish
-            sh '''
-                docker run -d -p 7002:7000 --name book-container1 ${env.DOCKER_USERNAME}/book_container:${env.BUILD_NUMBER}
-                echo "Docker konteyneri ishga tushirildi. Testlar ishga tushadi..."
-                
-                # Docker konteynerida testlarni bajarish
-                docker exec book-container1 /bin/bash -c "
-                    python3 -m venv ${VIRTUAL_ENV} &&
-                    . ${VIRTUAL_ENV}/bin/activate &&
-                    pip install -r /app/requirements.txt &&
-                    python manage.py test myapp.tests"
-            '''
+                    // Docker konteyneri ichida testlarni ishga tushirish
+                    sh '''
+                        docker run -d -p 7002:7000 --name book-container1 ${DOCKER_USERNAME}/book_container:${BUILD_NUMBER}
+                        echo "Docker konteyneri ishga tushirildi. Testlar ishga tushadi..."
+                        
+                        # Docker konteynerida testlarni bajarish
+                        docker exec book-container1 /bin/bash -c "
+                            python3 -m venv ${VIRTUAL_ENV} &&
+                            . ${VIRTUAL_ENV}/bin/activate &&
+                            pip install -r /app/requirements.txt &&
+                            python manage.py test myapp.tests"
+                    '''
+                }
+            }
         }
-    }
-}
-
 
         stage('Docker Image-ni Push Qilish') {
             steps {
@@ -89,7 +88,7 @@ pipeline {
 
     post {
         success {
-            echo "Build, test va push muvaffaqiyatli yakunlandi!"
+            echo "Build, test va push muvaffaqiyatsiz yakunlandi!"
         }
         failure {
             echo "Build yoki test muvaffaqiyatsiz tugadi!"
