@@ -3,13 +3,11 @@ pipeline {
         gitRepo = 'https://github.com/abbos1117/book.git'
         branchName = 'main'
         dockerImage = ''
-        // Virtual muhit uchun yangi manzil
-        VIRTUAL_ENV = "${WORKSPACE}/env"  // Yangi nom, WORKSPACE ichida 'env' deb nomladi
+        VIRTUAL_ENV = "${WORKSPACE}/env"  
         dockerhub_user = "${dockerhub_name}"
         dockerhub_pass = "${dockerhub_pass}"
-        // Yangi konteyner nomi
-        containerName = "kutubxona-container-${env.BUILD_NUMBER}" // Yangi nomda konteyner yaratish
-        dockerImageName = "kutubxona-image" // Docker image nomi o'zgartirildi
+        containerName = "kutubxona-container-${env.BUILD_NUMBER}" 
+        dockerImageName = "kutubxona-image" 
     }
 
     agent any
@@ -25,11 +23,9 @@ pipeline {
         stage('Set Up Virtual Environment') {
             steps {
                 script {
-                    // Agar virtual muhit mavjud bo'lmasa, uni yaratamiz
                     if (!fileExists("${env.VIRTUAL_ENV}")) {
                         sh "python3 -m venv ${env.VIRTUAL_ENV}"
                     }
-                    // Virtual muhitni faollashtiramiz va requirements.txt faylini o'rnatamiz
                     sh """
                         . ${env.VIRTUAL_ENV}/bin/activate
                         pip install --upgrade pip
@@ -42,7 +38,6 @@ pipeline {
         stage('Run Tests') {
             steps {
                 script {
-                    // Virtual muhitda testlarni ishga tushiramiz
                     sh ". ${env.VIRTUAL_ENV}/bin/activate && python3 manage.py test myapp.tests"
                 }
             }
@@ -58,6 +53,19 @@ pipeline {
             }
         }
 
+        stage('Docker Image-ni Ishga Tushirish') {
+            steps {
+                script {
+                    echo "Eski konteynerni to'xtatish va o'chirish..."
+                    sh "docker stop ${env.containerName} || true"
+                    sh "docker rm ${env.containerName} || true"
+                    echo "Docker image ishga tushirilmoqda..."
+                    sh "docker run -d -p 7006:7005 --name ${env.containerName} ${env.dockerhub_user}/${env.dockerImageName}:${env.BUILD_NUMBER}"
+                    echo "Docker image '${env.containerName}' konteynerida ishlamoqda"
+                }
+            }
+        }
+
         stage('Docker Image-ni Push Qilish') {
             steps {
                 script {
@@ -69,19 +77,6 @@ pipeline {
                     echo "Docker image Docker Hub'ga yuklanyapti..."
                     dockerImage.push("${env.BUILD_NUMBER}")
                     dockerImage.push("latest")
-                }
-            }
-        }
-
-        stage('Docker Image-ni Ishga Tushirish') {
-            steps {
-                script {
-                    echo "Eski konteynerni to'xtatish va o'chirish..."
-                    sh "docker stop ${env.containerName} || true"
-                    sh "docker rm ${env.containerName} || true"
-                    echo "Docker image ishga tushirilmoqda..."
-                    sh "docker run -d -p 7006:7005 --name ${env.containerName} ${env.dockerhub_user}/${env.dockerImageName}:${env.BUILD_NUMBER}"
-                    echo "Docker image '${env.containerName}' konteynerida ishlamoqda"
                 }
             }
         }
