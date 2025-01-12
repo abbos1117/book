@@ -54,26 +54,29 @@ pipeline {
         stage('Docker Image-ni Ishga Tushirish') {
             steps {
                 script {
+                    echo "Eski konteynerni to'xtatish va o'chirish..."
+                    sh "docker stop book-container1 || true" // Eski konteynerni to'xtatish
+                    sh "docker rm book-container1 || true" // Eski konteynerni o'chirish
                     echo "Docker image ishga tushirilmoqda..."
                     // Yangi konteyner nomi bilan Docker containerni ishga tushirish
                     sh "docker run -d -p 7002:7000 --name book-container1 ${env.DOCKER_USERNAME}/book_container:${env.BUILD_NUMBER}"
                     echo "Docker image 'book-container1' konteynerida ishlamoqda"
                 }
+                }
             }
         }
 
-       // stage('Tozalash') {
-       //     steps {
-       //         script {
-       //             echo "Docker image va konteynerlarni tozalash..."
-       //             sh "docker rmi ${env.DOCKER_USERNAME}/book_container:${env.BUILD_NUMBER} || true" // Build image-ni o'chirish
-       //             sh "docker rmi ${env.DOCKER_USERNAME}/book_container:latest || true" // 'latest' image-ni o'chirish
-       //             sh "docker stop book-container1 || true" // Yangi konteynerni to'xtatish
-       //             sh "docker rm book-container1 || true" // Yangi konteynerni o'chirish
-       //         }
-       //     }
-       // }
-    }//
+        stage('Tozalash') {
+            steps {
+                script {
+                    echo "Docker image va konteynerlarni tozalash..."
+                   sh "docker rmi ${env.DOCKER_USERNAME}/book_container:${env.BUILD_NUMBER} || true" // Build image-ni o'chirish
+                    sh "docker rmi ${env.DOCKER_USERNAME}/book_container:latest || true" // 'latest' image-ni o'chirish
+                
+                }
+            }
+        }
+    }
 
     post {
         success {
