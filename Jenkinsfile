@@ -1,9 +1,8 @@
 pipeline {
     environment {
-        gitRepo = 'https://github.com/abbos1117/book.git' // GitHub repository manzili
-        branchName = 'main' // Git branch nomi
-        dockerImage = '' // Docker image uchun o'zgaruvchi
-        VIRTUAL_ENV = '.venv' // Virtual muhit nomi
+        gitRepo = 'https://github.com/abbos1117/book.git'  // GitHub repository URL
+        branchName = 'main'  // Git branch name
+        VIRTUAL_ENV = '.venv'  // Virtual environment name
     }
 
     agent any
@@ -11,86 +10,50 @@ pipeline {
     stages {
         stage('Git - Checkout') {
             steps {
-                echo "Repositoryni klonlash..."
+                echo "Cloning repository..."
                 checkout([$class: 'GitSCM', branches: [[name: branchName]], userRemoteConfigs: [[url: gitRepo]]])
             }
         }
 
-        stage('Docker Image Yaratish') {
+        stage('Set Up Virtual Environment') {
             steps {
                 script {
-                    echo "Docker image yaratilyapti..."
-                    dockerImage = docker.build("${env.DOCKER_USERNAME}/book_container:${env.BUILD_NUMBER}") // Build raqami bilan Docker image yaratish
-                    dockerImage.tag("latest") // 'latest' tegini qo‘shish
-                }
-            }
-        }
+                    echo "Setting up the virtual environment..."
 
-        stage('Test') {
-            steps {
-                script {
-                    echo "Testlarni ishga tushirish..."
-
-                    // Docker konteyneri ichida testlarni ishga tushirish
+                    // Install dependencies using Pipenv or other tools as per your setup
                     sh '''
-                        docker run -d -p 7002:7000 --name book-container1 ${DOCKER_USERNAME}/book_container:${BUILD_NUMBER}
-                        echo "Docker konteyneri ishga tushirildi. Testlar ishga tushadi..."
-                        
-                        # Docker konteynerida testlarni bajarish
-                        docker exec book-container1 /bin/bash -c "
-                            python3 -m venv ${VIRTUAL_ENV} &&
-                            . ${VIRTUAL_ENV}/bin/activate &&
-                            pip install -r /app/requirements.txt &&
-                            python manage.py test myapp.tests"
+                        python3 -m venv ${VIRTUAL_ENV}
+                        . ${VIRTUAL_ENV}/bin/activate
+                        pip install -r requirements.txt
                     '''
                 }
             }
         }
 
-        stage('Docker Image-ni Push Qilish') {
+        stage('Run Tests') {
             steps {
                 script {
-                    echo "Docker Hub'ga autentifikatsiya qilinyapti..."
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub_id', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                        sh 'echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin' // Docker Hub'ga login
-                    }
+                    echo "Running Django tests..."
 
-                    echo "Docker image Docker Hub'ga yuklanyapti..."
-                    dockerImage.push("${BUILD_NUMBER}") // Build raqami bilan image push qilish
-                    dockerImage.push("latest") // 'latest' teg bilan image push qilish
+                    // Activate virtual environment and run Django tests
+                    sh '''
+                        . ${VIRTUAL_ENV}/bin/activate
+                        python manage.py test myapp.tests
+                    '''
                 }
             }
         }
 
-        stage('Docker Image-ni Ishga Tushirish') {
+        stage('Clean Up') {
             steps {
                 script {
-                    echo "Docker image ishga tushirilmoqda..."
+                    echo "Cleaning up..."
 
-                    // Agar konteyner nomi allaqachon mavjud bo'lsa, uni to'xtatish va o'chirish
-                    sh """
-                        if [ \$(docker ps -aq -f name=book-container1) ]; then
-                            echo 'Konteyner mavjud, uni to\'xtatish va o\'chirish...'
-                            docker stop book-container1 || true
-                            docker rm book-container1 || true
-                        fi
-                    """
-
-                    // Yangi konteynerni ishga tushirish
-                    sh "docker run -d -p 7002:7000 --name book-container1 ${DOCKER_USERNAME}/book_container:${BUILD_NUMBER}"
-                    echo "Docker image 'book-container1' konteynerida ishlamoqda"
-                }
-            }
-        }
-
-        stage('Tozalash') {
-            steps {
-                script {
-                    echo "Docker image va konteynerlarni tozalash..."
-                    sh "docker rmi ${DOCKER_USERNAME}/book_container:${BUILD_NUMBER} || true" // Build image-ni o'chirish
-                    sh "docker rmi ${DOCKER_USERNAME}/book_container:latest || true" // 'latest' image-ni o'chirish
-                    sh "docker stop book-container1 || true" // Yangi konteynerni to'xtatish
-                    sh "docker rm book-container1 || true" // Yangi konteynerni o'chirish
+                    // Deactivate virtual environment and remove it
+                    sh '''
+                        deactivate || true
+                        rm -rf ${VIRTUAL_ENV}
+                    '''
                 }
             }
         }
@@ -98,14 +61,14 @@ pipeline {
 
     post {
         success {
-            echo "Build, test va push muvaffaqiyatli yakunlandi!"
+            echo "Build and test completed successfully!"
         }
         failure {
-            echo "Build yoki test muvaffaqiyatsiz tugadi!"
+            echo "Build or test failed!"
         }
         always {
-            echo "Workspace tozalanmoqda..."
-            cleanWs() // Workspace tozalash
+            echo "Workspace cleaning up..."
+            cleanWs()  // Clean workspace after the job
         }
     }
 }
